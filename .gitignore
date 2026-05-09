@@ -1,0 +1,38 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.env
+.env.*
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Local agent / test artifacts
+.codex/
+.trae/
+tmp/
+.edge-test-run-dom.html
+.codex-http-server*.log
+chrome-*/
+
+# Large source/research inputs excluded from the deployable Pages repo
+release-assets/
+public/data/BACI_HS07_V202601/
+public/data/geoboundaries/
+public/data/natural_earth/
+
+# Optional full backup outputs are not part of the runtime Pages dataset
+public/data/processed/full/
+public/data/processed/country_detail/
+
+# This derived trend exceeds GitHub's 100 MB file limit and is not used by the frontend runtime
+public/data/processed/category_dependency_trend.csv

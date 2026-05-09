@@ -1,0 +1,17 @@
+{
+  "name": "china-manufacturing-dependency-network",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Interactive visualization of structural dependence on China manufacturing in global supply chains.",
+  "scripts": {
+    "serve": "python -m http.server 8000",
+    "check:python": "python scripts/preprocess_baci.py --help"
+  },
+  "dependencies": {
+    "cesium": "1.139.1"
+  },
+  "overrides": {
+    "@cesium/engine": "23.0.1",
+    "@cesium/widgets": "14.4.1"
+  }
+}

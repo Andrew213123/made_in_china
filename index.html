@@ -1,0 +1,1288 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>中国制造依赖网络：全球供应链中的结构性依赖可视化</title>
+    <link
+      rel="stylesheet"
+      href="./Cesium-1.139.1/Build/Cesium/Widgets/widgets.css"
+    />
+    <link rel="stylesheet" href="./styles.css?v=flow-target-layout-1" />
+  </head>
+
+  <body class="presentation-mode">
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"></div>
+          <div class="brand-copy">
+            <p class="brand-kicker">全球制造依赖观测台</p>
+            <h1>中国制造依赖网络</h1>
+            <p class="brand-subtitle">
+              China Manufacturing Dependency Network: Visualizing the Evolution of Global Supply Chain
+              Dependence, 2007-2024
+            </p>
+          </div>
+        </div>
+
+        <nav class="tabs" aria-label="页面导航">
+          <button class="tab is-active" data-section="overview">
+            <i data-lucide="globe-2"></i>
+            <span>全球总览</span>
+            <small>全球依赖总览</small>
+          </button>
+          <button class="tab" data-section="country">
+            <i data-lucide="id-card"></i>
+            <span>国家故事</span>
+            <small>看懂一个国家</small>
+          </button>
+          <button class="tab" data-section="matrix">
+            <i data-lucide="layout-grid"></i>
+            <span>依赖热力图</span>
+            <small>国家和产品对比</small>
+          </button>
+          <button class="tab" data-section="flows">
+            <i data-lucide="route"></i>
+            <span>贸易流向</span>
+            <small>中国制造流向哪里</small>
+          </button>
+          <button class="tab" data-section="target">
+            <i data-lucide="crosshair"></i>
+            <span>重点产品</span>
+            <small>哪些产品最值得关注</small>
+          </button>
+          <button class="tab" data-section="game">
+            <i data-lucide="gamepad-2"></i>
+            <span>扫雷游戏</span>
+            <small>风险排查</small>
+          </button>
+          <button class="tab" data-section="docs">
+            <i data-lucide="book-open"></i>
+            <span>项目说明</span>
+            <small>数据从哪来</small>
+          </button>
+        </nav>
+
+        <div class="top-actions" aria-label="全局状态">
+          <div class="year-badge">
+            <span>年份</span>
+            <strong id="topCurrentYear">2024</strong>
+          </div>
+          <div class="metric-pills" aria-label="指标切换">
+            <button class="metric-pill is-active" data-metric-pill="cdi">依赖度</button>
+            <button class="metric-pill" data-metric-pill="hhi">来源集中</button>
+            <button class="metric-pill" data-metric-pill="vulnerability">综合风险</button>
+          </div>
+          <button class="help-button" type="button" data-section-link="docs" aria-label="查看方法说明">
+            <i data-lucide="circle-help"></i>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="section is-active" id="overview">
+          <aside class="panel controls">
+            <div class="panel-head">
+              <p class="panel-kicker">全球依赖总览</p>
+              <h2>观测控制台</h2>
+              <p class="panel-intro">
+                以中国为制造源点，观察不同国家在 2007-2024 年间的进口依赖强度、空间分布与产品结构。
+              </p>
+            </div>
+
+            <section class="control-group">
+              <div class="group-head">
+                <h3>数据范围</h3>
+                <span>选择年份</span>
+              </div>
+              <div class="year-play-row">
+                <label>
+                  年份
+                  <select id="yearSelect"></select>
+                </label>
+                <button id="playButton" type="button" title="播放年份演化">播放演化</button>
+              </div>
+              <label>
+                依赖阈值
+                <span class="inline-value" id="thresholdLabel">0.10</span>
+                <input id="thresholdInput" type="range" min="0" max="0.8" step="0.05" value="0.1" />
+              </label>
+            </section>
+
+            <section class="control-group">
+              <div class="group-head">
+                <h3>分析指标</h3>
+                <span>看哪种指标</span>
+              </div>
+              <label>
+                指标
+                <select id="metricSelect">
+                  <option value="cdi">依赖度</option>
+                  <option value="hhi">来源集中</option>
+                  <option value="vulnerability">综合风险</option>
+                </select>
+              </label>
+              <p class="group-note" id="metricDescription">
+                依赖度表示一个国家制造品进口中有多少来自中国。
+              </p>
+            </section>
+
+            <section class="control-group">
+              <div class="group-head">
+                <h3>筛选条件</h3>
+                <span>选择范围和国家</span>
+              </div>
+              <label>
+                商品范围
+                <select id="scopeSelect"></select>
+              </label>
+              <label>
+                分类维度
+                <select id="categoryDimensionSelect"></select>
+              </label>
+              <label>
+                商品类别
+                <select id="categorySelect"></select>
+              </label>
+              <label>
+                国家
+                <select id="countrySelect"></select>
+              </label>
+              <p class="group-note" id="categoryDimensionNote">
+                默认使用制造品范围与分析大类。切换到分析细类后，地图、矩阵与右侧国家分析会同步刷新。
+              </p>
+            </section>
+
+            <section class="control-group">
+              <div class="group-head">
+                <h3>颜色图例</h3>
+                <span>依赖度色标</span>
+              </div>
+              <div class="legend" id="legend"></div>
+              <p class="group-note">
+                冷色表示较低依赖，暖色表示较高依赖。中国源点固定为金色，不参与普通国家色标。
+              </p>
+            </section>
+          </aside>
+
+          <div class="globe-wrap" id="globeWrap">
+            <div id="globe"></div>
+            <div class="globe-grid" aria-hidden="true"></div>
+            <div class="globe-particle-layer" aria-hidden="true"></div>
+
+            <div class="globe-header">
+              <div>
+                <p class="panel-kicker">地球视图</p>
+              <h2>世界有多依赖中国制造？</h2>
+                <p>
+                  颜色越暖，说明这个国家对中国制造越依赖；弧线展示中国制造流向的主要国家。
+                </p>
+              </div>
+              <div class="globe-annotations">
+                <span>冷色 = 低依赖</span>
+                <span>暖色 = 高依赖</span>
+                <span>点击国家查看画像</span>
+              </div>
+            </div>
+
+            <div class="globe-tooltip" id="globeTooltip" hidden></div>
+            <div class="globe-labels" id="globeLabels"></div>
+
+            <div class="globe-hint">
+              <i data-lucide="mouse"></i>
+              <span>拖拽旋转 / 滚轮缩放</span>
+            </div>
+
+            <div class="globe-color-legend" aria-label="颜色图例">
+              <strong>颜色图例</strong>
+              <div class="legend-scale"></div>
+              <div class="legend-labels">
+                <span>低依赖</span>
+                <span>中等</span>
+                <span>高依赖</span>
+              </div>
+              <p>颜色越暖，代表该国家对中国制造越依赖。</p>
+            </div>
+
+            <div class="bottom-rail">
+              <div class="summary-card">
+                <div class="summary-head">
+                  <p class="panel-kicker">全球快照</p>
+                  <h3>关键指标</h3>
+                </div>
+                <div class="kpi-strip" id="kpiStrip"></div>
+              </div>
+
+              <div class="timeline-card">
+                <div class="timeline-head">
+                  <div>
+                    <p class="panel-kicker">时间轴</p>
+                    <h3><span id="currentYear">2024</span> 年格局</h3>
+                  </div>
+                </div>
+                <div class="timeline-markers" id="timelineMarkers">
+                  <span class="timeline-marker" data-year="2008">2008 金融危机</span>
+                  <span class="timeline-marker" data-year="2018">2018 贸易摩擦</span>
+                  <span class="timeline-marker" data-year="2020">2020 疫情冲击</span>
+                  <span class="timeline-marker" data-year="2024">2024 最新</span>
+                </div>
+                <div class="timeline-controls">
+                  <input id="timelineInput" type="range" min="0" max="0" step="1" value="0" />
+                  <div class="timeline-range">
+                    <span>2007</span>
+                    <span>2024</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="panel detail" id="detailPanel">
+            <div class="country-focus-map" id="countryFocusMap" aria-hidden="true"></div>
+            <div class="panel-head">
+              <p class="panel-kicker">全球总览</p>
+              <div class="detail-title-row">
+                <h2 id="countryTitle">这个国家依赖中国制造吗？</h2>
+                <button class="subtle-link" type="button" data-section-link="country">进入国家页</button>
+                <button class="detail-close" type="button" id="overviewDetailClose" aria-label="退出国家详情">
+                  <i data-lucide="x"></i>
+                </button>
+              </div>
+              <p class="panel-intro" id="countryMeta">
+                点击地球上的国家，查看其在当前年份对中国制造的依赖画像、产品结构与长期变化。
+              </p>
+            </div>
+
+            <section class="identity-card">
+              <div class="identity-flag">
+                <span class="identity-dot"></span>
+                <div>
+                  <strong id="countryIdentityName">-</strong>
+                  <span id="countryIdentityMeta">-</span>
+                </div>
+              </div>
+              <div class="identity-stats">
+                <div>
+                  <span>当前年份</span>
+                  <strong id="detailYear">2024</strong>
+                </div>
+                <div>
+                  <span>全球排名</span>
+                  <strong id="detailRank">-</strong>
+                </div>
+                <div>
+                  <span>主导类别</span>
+                  <strong id="detailTopCategory">-</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="metric-card">
+              <div class="metric-grid">
+                <div>
+                  <span>依赖度</span>
+                  <strong id="detailCdi">-</strong>
+                </div>
+                <div>
+                  <span>来源集中</span>
+                  <strong id="detailHhi">-</strong>
+                </div>
+                <div>
+                  <span>综合风险</span>
+                  <strong id="detailVulnerability">-</strong>
+                </div>
+                <div>
+                  <span>中国制造品进口额</span>
+                  <strong id="detailChinaImport">-</strong>
+                </div>
+                <div>
+                  <span>制造业总进口额</span>
+                  <strong id="detailTotalImport">-</strong>
+                </div>
+                <div>
+                  <span>2007-2024 变化</span>
+                  <strong id="detailPeriodDelta">-</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="diagnosis-card">
+              <div class="section-card-head">
+                <h3>结构诊断</h3>
+                <span>研究判断</span>
+              </div>
+              <div id="countryDiagnosisGrid" class="signal-grid"></div>
+            </section>
+
+            <section class="trend-card">
+              <div class="section-card-head">
+                <h3>长期趋势</h3>
+                <span id="detailDelta">-</span>
+              </div>
+              <div id="trendChart" class="mini-chart"></div>
+              <div id="countryTrendSummary" class="trend-summary"></div>
+            </section>
+
+            <section class="structure-card">
+              <div class="section-card-head">
+                <h3>依赖度排行</h3>
+                <span>Top 5 细分类</span>
+              </div>
+              <div id="topProducts" class="bar-list"></div>
+            </section>
+
+            <section class="evidence-card">
+              <div class="section-card-head">
+                <h3>结构证据</h3>
+                <span>国家快照证据</span>
+              </div>
+              <div id="countrySignalGrid" class="signal-grid"></div>
+              <div class="evidence-columns">
+                <div class="analysis-subcard">
+                  <div class="mini-head">
+                    <strong>来源结构</strong>
+                    <span>supplier mix</span>
+                  </div>
+                  <div id="countrySupplierStructure" class="analysis-list"></div>
+                </div>
+                <div class="analysis-subcard">
+                  <div class="mini-head">
+                    <strong>依赖广度</strong>
+                    <span>HS6 coverage</span>
+                  </div>
+                  <div id="countryBreadth" class="analysis-list"></div>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </section>
+
+        <section class="section analysis country-page" id="country">
+          <div class="section-head">
+            <div>
+              <p class="panel-kicker">国家故事</p>
+              <h2 id="countryPageTitle">看懂一个国家的中国制造依赖</h2>
+            </div>
+            <p id="countryPageIntro">选择一个国家，查看它依赖中国制造的程度、变化趋势，以及主要依赖哪些产品。</p>
+          </div>
+
+          <div class="country-workbench" id="countryWorkbench">
+            <div class="country-filter-bar" id="countryWorkbenchFilter">
+              <label>
+                国家
+                <select id="countryWorkbenchCountrySelect"></select>
+              </label>
+              <label>
+                年份
+                <select id="countryWorkbenchYearSelect"></select>
+              </label>
+              <label>
+                商品范围
+                <select id="countryWorkbenchScopeSelect"></select>
+              </label>
+              <div class="country-filter-block">
+                <span>分析维度</span>
+                <div class="segmented-control" role="group" aria-label="国家页分析维度">
+                  <button type="button" data-country-workbench-dimension="analysis_major" class="toolbar-pill is-active">分析大类</button>
+                  <button type="button" data-country-workbench-dimension="analysis_minor" class="toolbar-pill">分析细类</button>
+                </div>
+              </div>
+              <label class="country-category-select">
+                商品类别
+                <select id="countryWorkbenchCategorySelect"></select>
+              </label>
+              <div class="country-filter-block">
+                <span>指标</span>
+                <div class="segmented-control metric-pills" role="group" aria-label="国家页分析指标">
+                  <button type="button" class="metric-pill is-active" data-metric-pill="cdi">依赖度</button>
+                  <button type="button" class="metric-pill" data-metric-pill="hhi">来源集中</button>
+                  <button type="button" class="metric-pill" data-metric-pill="vulnerability">综合风险</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="countryWorkbenchContext" class="country-context-strip"></div>
+
+            <section class="analysis-card country-position-band">
+              <div class="country-position-bullets">
+                <div class="section-card-head">
+                  <h3>国家相对位置</h3>
+                  <span>Metric position</span>
+                </div>
+                <p class="chart-caption">三项核心指标使用 0-1 共同尺度，比较当前国家与全部样本国家的相对位置。</p>
+                <div id="countryMetricBullets" class="metric-bullet-list metric-bullet-list-wide"></div>
+                <div class="chart-legend-row">
+                  <span><i class="legend-dot is-current"></i>当前国家</span>
+                  <span><i class="legend-line"></i>样本中位数</span>
+                  <span><i class="legend-band"></i>高值区间</span>
+                </div>
+              </div>
+              <div class="country-position-plot">
+                <div class="section-card-head">
+                  <h3>国家样本分布</h3>
+                  <span>Distribution</span>
+                </div>
+                <p class="chart-caption">红点表示当前国家在全部样本国家中的位置；越靠右表示当前指标越高。</p>
+                <div id="countryMetricDistributionChart" class="chart chart-position"></div>
+                <div class="chart-legend-row">
+                  <span><i class="legend-dot is-sample"></i>样本国家</span>
+                  <span><i class="legend-dot is-current"></i>当前国家</span>
+                  <span><i class="legend-line"></i>中位数 / P75 / P90</span>
+                </div>
+              </div>
+            </section>
+
+            <div class="country-shell">
+              <aside class="analysis-side country-sticky">
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>国家身份</h3>
+                  <span id="countryPageRank">-</span>
+                </div>
+                <div class="identity-card compact">
+                  <div class="identity-flag">
+                    <span class="identity-dot"></span>
+                    <div>
+                      <strong id="countryPageIdentityName">-</strong>
+                      <span id="countryPageIdentityMeta">-</span>
+                    </div>
+                  </div>
+                  <div class="identity-stats">
+                    <div>
+                      <span>当前年份</span>
+                      <strong id="countryPageYear">-</strong>
+                    </div>
+                    <div>
+                      <span>主导类别</span>
+                      <strong id="countryPageTopCategory">-</strong>
+                    </div>
+                    <div>
+                      <span>最大流向阶段</span>
+                      <strong id="countryPageStage">中国制造</strong>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="analysis-card country-context-card">
+                <div class="section-card-head">
+                  <h3>当前口径</h3>
+                  <span>Context</span>
+                </div>
+                <div class="context-metrics">
+                  <div>
+                    <span>商品范围</span>
+                    <strong id="countryPageContextScope">-</strong>
+                  </div>
+                  <div>
+                    <span>分析维度</span>
+                    <strong id="countryPageContextDimension">-</strong>
+                  </div>
+                  <div>
+                    <span>商品类别</span>
+                    <strong id="countryPageContextCategory">-</strong>
+                  </div>
+                  <div>
+                    <span>指标</span>
+                    <strong id="countryPageContextMetric">-</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>核心指标</h3>
+                  <span>当前画像</span>
+                </div>
+                <div class="metric-grid metric-grid-compact">
+                  <div>
+                  <span>依赖度</span>
+                    <strong id="countryPageCdi">-</strong>
+                  </div>
+                  <div>
+                  <span>来源集中</span>
+                    <strong id="countryPageHhi">-</strong>
+                  </div>
+                  <div>
+                  <span>综合风险</span>
+                    <strong id="countryPageVulnerability">-</strong>
+                  </div>
+                  <div>
+                    <span>2007-2024 变化</span>
+                    <strong id="countryPageDelta">-</strong>
+                  </div>
+                  <div>
+                    <span>中国制造品进口额</span>
+                    <strong id="countryPageChinaImport">-</strong>
+                  </div>
+                  <div>
+                    <span>制造业总进口额</span>
+                    <strong id="countryPageTotalImport">-</strong>
+                  </div>
+                </div>
+              </section>
+              </aside>
+
+              <div class="analysis-main country-main">
+              <section class="analysis-card chart-card">
+                <div class="section-card-head">
+                  <h3>2007-2024 长期趋势</h3>
+                  <span id="countryPageTrendMeta">依赖度趋势</span>
+                </div>
+                <p class="chart-caption">展示当前国家在当前筛选口径下的指标变化，并标注起点、峰值和当前年份。</p>
+                <div id="countryTrendChart" class="chart chart-medium"></div>
+                <div id="countryPageTrendSummary" class="trend-summary"></div>
+              </section>
+
+              <section class="analysis-card chart-card">
+                <div class="section-card-head">
+                  <h3 id="countryCategoryChartTitle">类别结构分析</h3>
+                  <span id="countryCategoryChartMeta">依赖度排行</span>
+                </div>
+                <p class="chart-caption">下方列出当前国家依赖度最高的 Top 5 产品类别，用数值和进度条突出主要依赖来源。</p>
+                <div class="country-structure-grid">
+                  <div>
+                    <div class="chart-legend-row chart-legend-row-inner">
+                      <span><i class="legend-line is-wide"></i>指标值</span>
+                      <span><i class="legend-dot is-sized"></i>重要性</span>
+                      <span><i class="legend-band"></i>脆弱性着色</span>
+                    </div>
+                    <div id="countryCategoryChart" class="chart chart-medium"></div>
+                    <div id="countryPageCategoryContribution" class="bar-list bar-list-wide"></div>
+                  </div>
+                  <div>
+                    <div class="chart-legend-row chart-legend-row-inner">
+                      <span>横轴：重要性</span>
+                      <span>纵轴：依赖度</span>
+                      <span>右上：核心依赖</span>
+                    </div>
+                    <div id="countryCategoryPortfolioChart" class="chart chart-medium"></div>
+                    <div id="countryWorkbenchCategoryFocus" class="country-category-focus"></div>
+                  </div>
+                </div>
+              </section>
+              </div>
+
+              <aside class="analysis-side country-sticky country-evidence-panel">
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>结构变化</h3>
+                  <span>Structural change</span>
+                </div>
+                <p class="chart-caption">连线显示类别在 2007 与当前年份之间的结构位置变化，越粗表示当前重要性越高。</p>
+                <div id="countryPageStructuralChange" class="signal-grid"></div>
+                <div id="countryStructuralChangeChart" class="chart chart-small"></div>
+                <div class="chart-legend-row">
+                  <span><i class="legend-line is-wide"></i>类别连线</span>
+                  <span><i class="legend-band"></i>脆弱性着色</span>
+                  <span>上移：结构地位增强</span>
+                </div>
+              </section>
+
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>来源结构</h3>
+                  <span>Supplier mix</span>
+                </div>
+                <p class="chart-caption">条形长度表示进口来源份额，中国来源以红色强调。</p>
+                <div id="countrySupplierChart" class="chart chart-small"></div>
+                <div id="countryPageSupplierStructure" class="analysis-list"></div>
+              </section>
+
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>依赖广度</h3>
+                  <span>HS6 coverage</span>
+                </div>
+                <p class="chart-caption">漏斗条展示该国 HS6 产品中由中国供应、高依赖和极高依赖的覆盖范围。</p>
+                <div id="countryWorkbenchBreadth" class="breadth-funnel"></div>
+                <div id="countryPageDependencyBreadth" class="analysis-list"></div>
+              </section>
+              </aside>
+            </div>
+          </div>
+        </section>
+
+        <section class="section analysis" id="matrix">
+          <div class="section-head">
+            <div>
+              <p class="panel-kicker">依赖热力图</p>
+              <h2>哪些国家依赖哪些产品？</h2>
+            </div>
+            <p>用一张热力图比较不同国家和不同产品类别，颜色越暖，依赖越高。</p>
+          </div>
+          <div class="matrix-workbench">
+            <div class="matrix-control-bar">
+              <label>
+                商品范围
+                <select id="matrixScopeSelect"></select>
+              </label>
+              <div class="matrix-control-block">
+                <span>分析维度</span>
+                <div class="segmented-control" role="group" aria-label="矩阵分析维度">
+                  <button class="toolbar-pill is-active" data-matrix-category-level="analysis_major">分析大类</button>
+                  <button class="toolbar-pill" data-matrix-category-level="analysis_minor">分析细类</button>
+                </div>
+              </div>
+              <div class="matrix-control-block">
+                <span>指标</span>
+                <div class="segmented-control" role="group" aria-label="矩阵指标">
+                  <button class="metric-pill is-active" data-matrix-metric="cdi">依赖度</button>
+                  <button class="metric-pill" data-matrix-metric="hhi">来源集中</button>
+                  <button class="metric-pill" data-matrix-metric="vulnerability">综合风险</button>
+                </div>
+              </div>
+              <div class="matrix-control-block">
+                <span>排序方式</span>
+                <div class="toolbar-pills">
+                  <button class="toolbar-pill is-active" data-matrix-sort="cdi">按指标</button>
+                  <button class="toolbar-pill" data-matrix-sort="region">按区域</button>
+                  <button class="toolbar-pill" data-matrix-sort="income">按收入组</button>
+                  <button class="toolbar-pill" data-matrix-sort="category">按当前类别</button>
+                </div>
+              </div>
+              <label>
+                国家数量
+                <select id="matrixCountryLimitSelect">
+                  <option value="20">Top 20</option>
+                  <option value="40">Top 40</option>
+                  <option value="80">Top 80</option>
+                </select>
+              </label>
+              <label class="matrix-category-select">
+                商品类别
+                <select id="matrixCategorySelect"></select>
+              </label>
+            </div>
+
+            <div class="matrix-overview-grid">
+              <div class="matrix-summary-cards" id="matrixSummaryCards"></div>
+              <section class="analysis-card matrix-distribution-card">
+                <div class="section-card-head">
+                  <h3>单元格分布</h3>
+                  <span>Cell distribution</span>
+                </div>
+                <p class="chart-caption">展示当前矩阵所有国家-类别单元的指标分布，竖线标出锁定单元格的位置。</p>
+                <div id="matrixCellDistributionChart" class="chart matrix-mini-chart"></div>
+              </section>
+            </div>
+
+            <div class="matrix-body">
+              <section class="analysis-card matrix-chart-card">
+                <div class="section-card-head">
+                  <h3>国家 × 产品类别热力图</h3>
+                  <span id="matrixMeta">Top 40 国家 / 当前指标</span>
+                </div>
+                <p class="chart-caption">颜色越暖表示当前指标越高；悬停查看读数，点击单元格可锁定国家-类别组合。</p>
+                <div id="matrixChart" class="chart"></div>
+              </section>
+
+              <aside class="analysis-side matrix-inspector">
+                <section class="analysis-card">
+                  <div class="section-card-head">
+                    <h3>当前单元格</h3>
+                    <span id="matrixFocusMeta">悬停 / 点击</span>
+                  </div>
+                  <div class="matrix-cell-title">
+                    <strong id="matrixFocusCountry">-</strong>
+                    <span id="matrixFocusCategory">-</span>
+                  </div>
+                  <div id="matrixCellMetricBars" class="matrix-metric-bars"></div>
+                </section>
+
+                <section class="analysis-card">
+                  <div class="section-card-head">
+                    <h3>该国类别结构</h3>
+                    <span>Top 5</span>
+                  </div>
+                  <div id="matrixCountryTopCategories" class="matrix-rank-list"></div>
+                </section>
+
+                <section class="analysis-card">
+                  <div class="section-card-head">
+                    <h3>该类别国家排行</h3>
+                    <span>Top 5</span>
+                  </div>
+                  <div id="matrixCategoryTopCountries" class="matrix-rank-list"></div>
+                </section>
+
+                <section class="analysis-card matrix-product-clues">
+                  <details id="matrixProductDetails">
+                    <summary>查看产品线索</summary>
+                    <div id="matrixFocusProducts" class="hs6-list"></div>
+                  </details>
+                </section>
+              </aside>
+            </div>
+
+            <div class="matrix-bottom-summary">
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>类别平均排行</h3>
+                  <span>Category mean</span>
+                </div>
+                <div id="matrixCategoryAverageRank" class="matrix-rank-list"></div>
+              </section>
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>区域 / 收入组摘要</h3>
+                  <span>Group summary</span>
+                </div>
+                <div id="matrixGroupSummary" class="matrix-rank-list"></div>
+              </section>
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>值得关注的国家-产品组合</h3>
+                  <span>Outliers</span>
+                </div>
+                <div id="matrixOutlierCells" class="matrix-outlier-list"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section class="section analysis" id="flows">
+          <div class="section-head">
+            <div>
+              <p class="panel-kicker">贸易流向</p>
+              <h2>中国制造主要流向哪里？</h2>
+            </div>
+            <p>用流向图展示中国制造通过哪些产品类别，流向哪些地区、国家或收入组。</p>
+          </div>
+          <div class="flow-workbench">
+            <section class="flow-summary-grid">
+              <div id="flowKpiStrip" class="flow-kpi-strip"></div>
+              <article class="analysis-card flow-insight-card">
+                <div class="section-card-head">
+                  <h3>自动结构洞察</h3>
+                  <span id="flowMeta">默认区域模式</span>
+                </div>
+                <p id="flowInsightText" class="flow-insight-text"></p>
+                <div id="flowContextChips" class="country-context-strip"></div>
+              </article>
+            </section>
+
+            <div class="flow-control-bar">
+              <label class="flow-control-field">
+                商品范围
+                <select id="flowScopeSelect"></select>
+              </label>
+              <div class="flow-control-block">
+                <span>分类粒度</span>
+                <div class="toolbar-pills">
+                  <button class="toolbar-pill is-active" data-flow-category-level="analysis_major">分析大类</button>
+                  <button class="toolbar-pill" data-flow-category-level="analysis_minor">分析细类</button>
+                  <button class="toolbar-pill" data-flow-category-level="hs_chapter">HS 章节</button>
+                  <button class="toolbar-pill" data-flow-category-level="topic_tag">专题标签</button>
+                </div>
+              </div>
+              <div class="flow-control-block">
+                <span>指标</span>
+                <div class="toolbar-pills">
+                  <button class="toolbar-pill is-active" data-flow-metric="cdi">依赖度</button>
+                  <button class="toolbar-pill" data-flow-metric="hhi">来源集中</button>
+                  <button class="toolbar-pill" data-flow-metric="vulnerability">综合风险</button>
+                </div>
+              </div>
+              <div class="flow-control-block">
+                <span>排序方式</span>
+                <div class="toolbar-pills">
+                  <button class="toolbar-pill is-active" data-flow-sort="value">按流向额</button>
+                  <button class="toolbar-pill" data-flow-sort="metric">按当前指标</button>
+                  <button class="toolbar-pill" data-flow-sort="importance">按重要性</button>
+                </div>
+              </div>
+              <div class="flow-control-block">
+                <span>流向模式</span>
+                <div class="toolbar-pills">
+                  <button class="toolbar-pill is-active" data-flow-mode="region">中国 → 类别 → 区域</button>
+                  <button class="toolbar-pill" data-flow-mode="country">中国 → 类别 → 国家</button>
+                  <button class="toolbar-pill" data-flow-mode="income">中国 → 类别 → 收入组</button>
+                </div>
+              </div>
+              <label class="flow-control-field">
+                类别数量
+                <select id="flowCategoryLimitSelect">
+                  <option value="4">Top 4</option>
+                  <option value="6" selected>Top 6</option>
+                  <option value="8">Top 8</option>
+                  <option value="10">Top 10</option>
+                  <option value="12">Top 12</option>
+                </select>
+              </label>
+              <label class="flow-control-field">
+                目标数量
+                <select id="flowTargetLimitSelect">
+                  <option value="0" selected>自动</option>
+                  <option value="6">Top 6</option>
+                  <option value="8">Top 8</option>
+                  <option value="10">Top 10</option>
+                  <option value="15">Top 15</option>
+                  <option value="20">Top 20</option>
+                </select>
+              </label>
+              <label class="flow-control-field flow-category-field">
+                商品类别
+                <select id="flowCategorySelect"></select>
+              </label>
+              <label class="flow-control-field">
+                最小份额
+                <select id="flowMinShareSelect">
+                  <option value="0" selected>不过滤</option>
+                  <option value="0.005">≥ 0.5%</option>
+                  <option value="0.01">≥ 1%</option>
+                  <option value="0.02">≥ 2%</option>
+                </select>
+              </label>
+              <button class="toolbar-pill flow-focus-exit" type="button" id="flowExitCountryFocus">退出国家聚焦</button>
+            </div>
+
+            <div class="flow-body">
+              <section class="analysis-card flow-chart-card">
+                <div class="section-card-head">
+                  <h3 id="flowChartTitle">China → Category → Target</h3>
+                  <span id="flowChartMeta">Top 6 categories</span>
+                </div>
+                <p class="chart-caption" id="flowChartCaption">区域模式用于观察中国制造流向的全球空间结构。</p>
+                <div id="sankeyChart" class="chart"></div>
+              </section>
+
+              <aside class="analysis-side flow-insight-panel">
+                <section class="analysis-card">
+                  <div class="section-card-head">
+                    <h3>模式说明</h3>
+                    <span>Reading mode</span>
+                  </div>
+                  <p id="flowDescription" class="interpretation"></p>
+                </section>
+
+                <section class="analysis-card">
+                  <div class="section-card-head">
+                    <h3>类别贡献排行</h3>
+                    <span>Share of China flows</span>
+                  </div>
+                  <div id="flowTopCategories" class="bar-list flow-compact-bars"></div>
+                </section>
+
+                <section class="analysis-card flow-top-target-summary" hidden>
+                  <div class="section-card-head">
+                    <h3>Top 目标</h3>
+                    <span id="flowTargetLabel">当前模式</span>
+                  </div>
+                  <div id="flowTopTargets" class="flow-target-list"></div>
+                </section>
+              </aside>
+            </div>
+
+            <div class="flow-diagnostics-grid">
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>类别贡献 Pareto</h3>
+                  <span>Category contribution</span>
+                </div>
+                <p class="chart-caption">柱形表示类别流向额，折线表示累计占比，用于识别主导类别及长尾结构。</p>
+                <div id="flowCategoryContributionChart" class="chart chart-flow-diagnostic"></div>
+                <div id="flowCategoryBars" class="bar-list flow-wide-bars flow-fallback-list"></div>
+              </section>
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>目标承接矩形树图</h3>
+                  <span>Target composition</span>
+                </div>
+                <p class="chart-caption">矩形面积表示目标承接份额，便于比较区域、国家或收入组的集中程度。</p>
+                <div id="flowTargetCompositionChart" class="chart chart-flow-diagnostic"></div>
+                <div id="flowTargetRank" class="flow-target-list flow-fallback-list"></div>
+              </section>
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>集中程度变化</h3>
+                  <span>Concentration</span>
+                </div>
+                <p class="chart-caption">累计份额曲线越陡，说明流向越集中；类别与目标两条线可比较产业集中与空间集中。</p>
+                <div id="flowConcentrationChart" class="chart chart-flow-diagnostic"></div>
+                <div id="flowConcentrationBars" class="flow-concentration-bars flow-fallback-list"></div>
+              </section>
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>阅读指南</h3>
+                  <span>How to read</span>
+                </div>
+                <div class="flow-guide-list">
+                  <div><strong>宽度</strong><span>流线越宽，表示中国制造流向规模越大。</span></div>
+                  <div><strong>颜色</strong><span>类别节点与流线共用类别色，便于追踪同一产业流向。</span></div>
+                  <div><strong>目标</strong><span>右侧节点表示当前模式下的区域、国家、收入组或聚焦国家。</span></div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section class="section analysis" id="target">
+          <div class="section-head">
+            <div>
+              <p class="panel-kicker">重点产品</p>
+              <h2>哪些产品最值得关注？</h2>
+            </div>
+            <p>本页使用 HS6 具体产品口径：它比大类更细，适合定位具体风险商品；星球越靠近中心表示综合风险越高，星球越大表示全球贸易规模越大。</p>
+          </div>
+          <div class="analysis-split target-layout">
+            <aside class="analysis-side">
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>星系图例</h3>
+                  <span>读图方式</span>
+                </div>
+                <div class="legend-list">
+                  <div><strong>星系位置</strong><span>越靠近中心，综合风险越高</span></div>
+                  <div><strong>星球大小</strong><span>全球进口规模越大，点越大</span></div>
+                  <div><strong>星球颜色</strong><span>产品所属类别</span></div>
+                  <div><strong>光晕</strong><span>高依赖国家越多，光晕越强</span></div>
+                  <div><strong>亮边框</strong><span>重点关注产品</span></div>
+                </div>
+              </section>
+
+              <section class="analysis-card">
+                <div class="section-card-head">
+                  <h3>高关注产品</h3>
+                  <span>专题筛选</span>
+                </div>
+                <label class="target-select-label">
+                  专题标签
+                  <select id="targetTopicTagSelect"></select>
+                </label>
+                <div id="targetSpotlightList" class="hs6-list"></div>
+              </section>
+            </aside>
+
+            <div class="analysis-main">
+              <div id="targetChart" class="chart"></div>
+            </div>
+
+            <aside class="analysis-card side-note side-card">
+              <div class="section-card-head">
+                <h3 id="productTitle">产品说明</h3>
+                <span id="productCategoryMeta">具体产品 HS6 详情</span>
+              </div>
+              <p id="productDetail">
+                点击星系中的产品星球，查看具体 HS6 商品、风险指数、中国全球供给占比和依赖国家数量；大类和细类对比可在热力图、贸易流向和国家故事中查看。
+              </p>
+              <div class="metric-grid metric-grid-compact">
+                <div>
+                  <span>脆弱性指数</span>
+                  <strong id="productVulnerability">-</strong>
+                </div>
+                <div>
+                  <span>中国全球供给占比</span>
+                  <strong id="productChinaShare">-</strong>
+                </div>
+                <div>
+                  <span>平均依赖度</span>
+                  <strong id="productAvgDependency">-</strong>
+                </div>
+                <div>
+                  <span>依赖国家数</span>
+                  <strong id="productCountryCount">-</strong>
+                </div>
+              </div>
+              <div id="riskList" class="risk-list"></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="section analysis game-page" id="game">
+          <div class="section-head">
+            <div>
+              <p class="panel-kicker">互动小游戏</p>
+              <h2>供应链风险扫雷：排查中国制造依赖风险</h2>
+            </div>
+            <p>在信息不完整的贸易网络中识别风险点、收集防御工具，并提交一份可解释的供应链风险评估。</p>
+          </div>
+
+          <div class="game-workbench mine-workbench">
+            <section class="mine-panel mine-mission-panel">
+              <div class="section-card-head">
+                <h3>任务面板</h3>
+                <span>Risk brief</span>
+              </div>
+              <div class="mine-selects">
+                <label>
+                  目标市场
+                  <select id="mineCountrySelect"></select>
+                </label>
+                <label>
+                  年份情境
+                  <select id="mineYearSelect"></select>
+                </label>
+                <label>
+                  货物类型
+                  <select id="mineCargoSelect"></select>
+                </label>
+                <label>
+                  游戏难度
+                  <select id="mineDifficultySelect">
+                    <option value="showcase">展示模式 8×8</option>
+                    <option value="standard">标准模式 10×10</option>
+                  </select>
+                </label>
+              </div>
+              <p id="mineMissionText" class="game-mission-text">翻开格子获得线索，标记风险点与防御工具，最后提交评估报告。</p>
+              <div class="mine-kpi-grid">
+                <div><span>依赖度</span><strong id="mineDependency">--</strong></div>
+                <div><span>来源集中</span><strong id="mineConcentration">--</strong></div>
+                <div><span>综合风险</span><strong id="mineVulnerability">--</strong></div>
+                <div><span>可标记目标</span><strong id="mineTargetCount">--</strong></div>
+              </div>
+              <div class="mine-context-card">
+                <strong>本局背景</strong>
+                <p id="mineContextText">国家依赖度、年份事件和货物属性会改变风险密度与扣分强度。</p>
+              </div>
+              <button id="mineResetButton" class="mine-primary-action" type="button">重新开局</button>
+            </section>
+
+            <section class="mine-panel mine-board-panel">
+              <div class="section-card-head">
+                <h3>供应链风险地图</h3>
+                <span id="mineStatusText">左键翻开，右键标记风险</span>
+              </div>
+              <div class="mine-board-wrap">
+                <div class="mine-zone">
+                  <div class="mine-zone-title">
+                    <strong>高风险贸易区</strong>
+                    <span>风险更多，防御工具更少</span>
+                  </div>
+                  <div id="mineRiskBoard" class="mine-board" aria-label="高风险贸易区扫雷棋盘"></div>
+                </div>
+                <div class="mine-zone">
+                  <div class="mine-zone-title">
+                    <strong>防御资源区</strong>
+                    <span>可发现工具，也潜伏少量风险</span>
+                  </div>
+                  <div id="mineSafeBoard" class="mine-board" aria-label="防御资源区扫雷棋盘"></div>
+                </div>
+              </div>
+              <div class="mine-board-legend">
+                <span><i class="legend-mine-hidden"></i>未知节点</span>
+                <span><i class="legend-mine-risk"></i>风险冲击</span>
+                <span><i class="legend-mine-tool"></i>防御工具</span>
+                <span><i class="legend-mine-suspect"></i>疑似标记</span>
+                <span><i class="legend-mine-confirm"></i>确认标记</span>
+              </div>
+            </section>
+
+            <aside class="mine-panel mine-dashboard">
+              <div class="section-card-head">
+                <h3>风险仪表盘</h3>
+                <span>Assessment</span>
+              </div>
+              <div class="mine-score-card">
+                <span>供应链安全指数</span>
+                <strong id="mineSecurityScore">0%</strong>
+                <p id="mineScoreText">通过线索判断风险，提交后生成最终评价。</p>
+              </div>
+              <div class="mine-meter-list">
+                <div><span>已翻开</span><strong id="mineRevealedCount">0</strong></div>
+                <div><span>疑似标记</span><strong id="mineSuspectCount">0</strong></div>
+                <div><span>确认标记</span><strong id="mineConfirmCount">0</strong></div>
+                <div><span>触发风险</span><strong id="mineHitCount">0</strong></div>
+              </div>
+              <div class="mine-tool-card">
+                <strong>已获取防御工具</strong>
+                <div id="mineToolRack" class="mine-tool-rack"></div>
+                <button id="mineIntelButton" type="button">使用情报分析器</button>
+              </div>
+              <div id="mineEventCard" class="mine-event-card">
+                <strong>风险事件</strong>
+                <p>翻开或标记一定数量格子后，会触发一次全球供应链事件。</p>
+              </div>
+              <button id="mineSubmitButton" class="mine-primary-action" type="button">提交风险评估</button>
+              <div id="mineResultCard" class="mine-result-card"></div>
+            </aside>
+
+            <section class="mine-lessons">
+              <div><strong>风险识别</strong><span>数字提示只告诉你周围有多少“风险或工具”，并不会直接告诉你它们是哪一种。</span></div>
+              <div><strong>防御工具</strong><span>多元采购、库存缓冲和备用通道可以抵御冲击，但获取工具也可能引入新风险。</span></div>
+              <div><strong>不确定决策</strong><span>疑似标记更稳，确认标记收益更高；供应链判断常常要在信息不完整时完成。</span></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="section docs" id="docs">
+          <article class="docs-shell">
+            <div class="section-head docs-head">
+              <div>
+                <p class="panel-kicker">项目说明</p>
+                <h2>数据、方法与设计依据</h2>
+              </div>
+              <p>
+                说明本项目如何从 BACI 国际贸易数据出发，构造依赖指标，并转化为多视图交互式可视分析系统。
+              </p>
+            </div>
+
+            <section class="docs-hero-grid">
+              <div class="docs-lead-panel">
+                <span class="docs-label">Research Question</span>
+                <h3>世界各国如何依赖中国制造？</h3>
+                <p>
+                  本系统聚焦全球供应链中的结构性进口依赖：不同国家在制造业进口中，
+                  对中国制造形成了怎样的依赖关系？这种依赖是否集中在少数国家、少数产品类别或特定年份之中？
+                </p>
+              </div>
+              <div class="docs-stat-panel">
+                <strong>2007-2024</strong>
+                <span>时间跨度</span>
+              </div>
+              <div class="docs-stat-panel">
+                <strong>国家 × 产品 × 年份</strong>
+                <span>分析对象</span>
+              </div>
+              <div class="docs-stat-panel">
+                <strong>7 个交互模块</strong>
+                <span>最终展示形态</span>
+              </div>
+            </section>
+
+            <section class="docs-grid">
+              <div class="docs-card">
+                <div class="section-card-head">
+                  <h3>理论依据</h3>
+                  <span>Nested Model</span>
+                </div>
+                <p>
+                  项目遵循 Tamara Munzner 的 Nested Model：先界定供应链依赖问题，
+                  再抽象为国家、产品、年份和贸易流任务，最后选择 3D 地球、热力矩阵、桑基图和供应链星系图进行表达。
+                </p>
+              </div>
+              <div class="docs-card">
+                <div class="section-card-head">
+                  <h3>数据来源</h3>
+                  <span>CEPII BACI</span>
+                </div>
+                <p>
+                  数据来自 CEPII BACI Version 202601，覆盖 2007-2024 年国际贸易记录。
+                  字段包括出口国、进口国、HS6 产品、贸易额和数量。本项目默认以 CHN 作为中国大陆口径。
+                </p>
+              </div>
+              <div class="docs-card">
+                <div class="section-card-head">
+                  <h3>分析目标</h3>
+                  <span>可解释探索</span>
+                </div>
+                <p>
+                  系统不只展示总量，而是帮助观众回答三个问题：谁更依赖中国制造、依赖集中在哪些产品、
+                  哪些产品在全球供应链中更值得关注。
+                </p>
+              </div>
+            </section>
+
+            <section class="docs-card docs-card-wide">
+              <div class="section-card-head">
+                <h3>核心指标</h3>
+                <span>Metric definitions</span>
+              </div>
+              <div class="formula-grid">
+                <div>
+                  <strong>依赖度 D</strong>
+                  <code>D(j,k,t) = V(China,j,k,t) / sum_i V(i,j,k,t)</code>
+                  <span>表示某国某类产品进口中来自中国的比例。</span>
+                </div>
+                <div>
+                  <strong>综合依赖 CDI</strong>
+                  <code>CDI(j,t) = sum_k [D(j,k,t) * W(j,k,t)]</code>
+                  <span>按产品重要性加权后，衡量国家总体依赖水平。</span>
+                </div>
+                <div>
+                  <strong>来源集中 HHI</strong>
+                  <code>HHI(j,k,t) = sum_i share(i,j,k,t)^2</code>
+                  <span>衡量进口来源是否集中在少数供应国。</span>
+                </div>
+                <div>
+                  <strong>产品脆弱性</strong>
+                  <code>0.35D + 0.25HHI + 0.25Importance + 0.15ChinaShare</code>
+                  <span>用于探索高依赖、高集中、高重要性的重点产品。</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="docs-card docs-card-wide">
+              <div class="section-card-head">
+                <h3>可视化设计逻辑</h3>
+                <span>Seven views</span>
+              </div>
+              <div class="docs-design-grid">
+                <div><strong>全球总览</strong><span>用 3D 地球观察国家依赖水平和中国制造流向。</span></div>
+                <div><strong>国家故事</strong><span>拆解单个国家的长期变化、结构特征和核心依赖类别。</span></div>
+                <div><strong>依赖热力图</strong><span>比较国家与产品类别之间的依赖强弱。</span></div>
+                <div><strong>贸易流向</strong><span>用桑基图解释中国制造流向哪些区域、国家或收入组。</span></div>
+                <div><strong>重点产品</strong><span>用供应链星系图突出值得关注的 HS6 产品。</span></div>
+                <div><strong>扫雷游戏</strong><span>把风险识别、标记置信度和防御工具转化为互动体验。</span></div>
+              </div>
+            </section>
+
+            <section class="docs-grid docs-grid-two">
+              <div class="docs-card">
+                <div class="section-card-head">
+                  <h3>数据处理流程</h3>
+                  <span>Pipeline</span>
+                </div>
+                <ol class="docs-pipeline">
+                  <li>读取 BACI 原始 CSV，并筛选 2007-2024 年数据。</li>
+                  <li>统一国家代码、HS6 产品代码和商品范围口径。</li>
+                  <li>计算总进口额、来自中国进口额、依赖度、HHI 和产品重要性。</li>
+                  <li>聚合到国家、区域、收入组、分析大类、分析细类和专题标签。</li>
+                  <li>导出静态 JSON / CSV，由前端按模块加载并渲染。</li>
+                </ol>
+              </div>
+              <div class="docs-card">
+                <div class="section-card-head">
+                  <h3>商品分类口径</h3>
+                  <span>Scope system</span>
+                </div>
+                <p>
+                  系统支持全部商品、初级商品、加工食品与烟草、制造品、特殊商品五类范围。
+                  同时保留 HS 原始章节、项目派生分析大类和分析细类，以及半导体、电池、医疗健康等专题标签。
+                </p>
+                <p>
+                  首页默认展示制造品 HS28-96 和分析大类，便于观众先看到最清晰的宏观结构。
+                </p>
+              </div>
+            </section>
+
+            <section class="docs-card docs-card-wide">
+              <div class="section-card-head">
+                <h3>适用边界与参考资料</h3>
+                <span>Limitations & sources</span>
+              </div>
+              <p>
+                进口依赖不等同于真实断供概率。现实风险还受到库存、本国产能、替代技术、企业合同、
+                政策环境、物流条件和转口贸易等因素影响。因此，本项目中的综合风险和脆弱性指标主要用于可视化探索与相对比较。
+              </p>
+              <ul class="reference-list">
+                <li><a href="https://www.cs.ubc.ca/labs/imager/tr/2009/NestedModel/NestedModel.pdf" target="_blank" rel="noreferrer">A Nested Model for Visualization Design and Validation</a></li>
+                <li><a href="https://miriah.github.io/publications/dsm12.pdf" target="_blank" rel="noreferrer">Design Study Methodology</a></li>
+                <li><a href="https://www.cepii.fr/DATA_DOWNLOAD/baci/doc/DescriptionBACI.html" target="_blank" rel="noreferrer">CEPII BACI Description</a></li>
+                <li><a href="https://www.naturalearthdata.com/" target="_blank" rel="noreferrer">Natural Earth</a></li>
+                <li><a href="https://cesium.com/learn/cesiumjs-learn/cesiumjs-quickstart/" target="_blank" rel="noreferrer">CesiumJS Quickstart</a></li>
+              </ul>
+            </section>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      window.CESIUM_BASE_URL = "./Cesium-1.139.1/Build/Cesium";
+    </script>
+    <script src="./Cesium-1.139.1/Build/Cesium/Cesium.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="./public/data/dashboard_processed.js"></script>
+    <script src="./src/state.js"></script>
+    <script src="./src/utils.js"></script>
+    <script src="./src/data-loader.js"></script>
+    <script src="./src/detail-panel.js?v=matrix-layout-2"></script>
+    <script src="./src/charts.js?v=matrix-distribution-axis-1"></script>
+    <script src="./src/app.js?v=supply-mines-1"></script>
+  </body>
+</html>
